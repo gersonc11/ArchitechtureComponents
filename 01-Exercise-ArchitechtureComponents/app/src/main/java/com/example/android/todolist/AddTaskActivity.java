@@ -22,6 +22,7 @@ import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProviders;
 
 import android.view.View;
 import android.widget.Button;
@@ -60,6 +61,7 @@ public class AddTaskActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_task);
+        roomExecutor = AppExecutors.getInstance();
 
         initViews();
 
@@ -74,11 +76,12 @@ public class AddTaskActivity extends AppCompatActivity {
             if (mTaskId == DEFAULT_TASK_ID) {
                 // populate the UI
                 mTaskId = intent.getIntExtra(EXTRA_TASK_ID, 0);
-                final LiveData<TaskEntry> taskEntry = mDb.taskDAO().getTaskById(mTaskId);
-                taskEntry.observe(this, new Observer<TaskEntry>() {
+                ViewModelFactory viewModelFactory = new ViewModelFactory(null, mDb, mTaskId);
+                final AddTaskViewModel addTaskViewModel = ViewModelProviders.of(this,viewModelFactory).get(AddTaskViewModel.class);
+                addTaskViewModel.getTaskEntryLiveData().observe(this, new Observer<TaskEntry>() {
                     @Override
                     public void onChanged(TaskEntry entry) {
-                        taskEntry.removeObserver(this);
+                        addTaskViewModel.getTaskEntryLiveData().removeObserver(this);
                         populateUI(entry);
 
                     }

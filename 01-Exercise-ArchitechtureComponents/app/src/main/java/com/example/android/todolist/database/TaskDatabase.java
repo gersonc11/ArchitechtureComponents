@@ -7,7 +7,7 @@ import androidx.room.Room;
 import androidx.room.RoomDatabase;
 import androidx.room.TypeConverters;
 
-@Database(entities = TaskEntry.class, version = 1)
+@Database(entities = TaskEntry.class, version = 1, exportSchema = true)
 @TypeConverters(DateConverter.class)
 public abstract class TaskDatabase extends RoomDatabase {
 

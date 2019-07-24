@@ -10,6 +10,11 @@ android {
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        javaCompileOptions {
+            annotationProcessorOptions {
+                arguments = ["room.schemaLocation": "$projectDir/database".toString()]
+            }
+        }
     }
     buildTypes {
         release {
@@ -35,8 +40,8 @@ dependencies {
     implementation 'com.google.android.material:material:1.0.0-beta01'
 
     // COMPLETED (1) Add Room dependencies
-    implementation "androidx.room:room-runtime:2.0.0-beta01"
-    annotationProcessor "androidx.room:room-compiler:2.0.0-beta01" // For Kotlin use kapt instead of annotationProcessor
+    implementation "androidx.room:room-runtime:$room_version"
+    annotationProcessor "androidx.room:room-compiler:$room_version" // For Kotlin use kapt instead of annotationProcessor
 
 
     // Testing
