@@ -1,30 +1,37 @@
 /*
-* Copyright (C) 2016 The Android Open Source Project
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright (C) 2016 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package com.example.android.todolist;
 
 import android.content.Intent;
 import android.os.Bundle;
+
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.Observer;
+
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioGroup;
 
+import com.example.android.todolist.database.TaskDatabase;
 import com.example.android.todolist.database.TaskEntry;
+
+import java.util.Date;
 
 
 public class AddTaskActivity extends AppCompatActivity {
@@ -45,6 +52,8 @@ public class AddTaskActivity extends AppCompatActivity {
     EditText mEditText;
     RadioGroup mRadioGroup;
     Button mButton;
+    private TaskDatabase mDb;
+    private AppExecutors roomExecutor;
 
     private int mTaskId = DEFAULT_TASK_ID;
 
@@ -58,11 +67,22 @@ public class AddTaskActivity extends AppCompatActivity {
             mTaskId = savedInstanceState.getInt(INSTANCE_TASK_ID, DEFAULT_TASK_ID);
         }
 
+        mDb = TaskDatabase.getInstance(getApplicationContext());
         Intent intent = getIntent();
         if (intent != null && intent.hasExtra(EXTRA_TASK_ID)) {
             mButton.setText(R.string.update_button);
             if (mTaskId == DEFAULT_TASK_ID) {
                 // populate the UI
+                mTaskId = intent.getIntExtra(EXTRA_TASK_ID, 0);
+                final LiveData<TaskEntry> taskEntry = mDb.taskDAO().getTaskById(mTaskId);
+                taskEntry.observe(this, new Observer<TaskEntry>() {
+                    @Override
+                    public void onChanged(TaskEntry entry) {
+                        taskEntry.removeObserver(this);
+                        populateUI(entry);
+
+                    }
+                });
             }
         }
     }
@@ -96,6 +116,9 @@ public class AddTaskActivity extends AppCompatActivity {
      */
     private void populateUI(TaskEntry task) {
 
+        mEditText.setText(task.getDescription());
+        setPriorityInViews(task.getPriority());
+
     }
 
     /**
@@ -104,6 +127,29 @@ public class AddTaskActivity extends AppCompatActivity {
      */
     public void onSaveButtonClicked() {
         // Not yet implemented
+
+        String description = mEditText.getText().toString();
+
+        int priority = getPriorityFromViews();
+
+        Date date = new Date();
+
+        final TaskEntry taskEntry = new TaskEntry(description, priority, date);
+
+        roomExecutor.getDiskIO().execute(new Runnable() {
+            @Override
+            public void run() {
+                if (mTaskId == DEFAULT_TASK_ID) {
+                    mDb.taskDAO().insert(taskEntry);
+                } else {
+                    taskEntry.setId(mTaskId);
+                    mDb.taskDAO().update(taskEntry);
+                }
+                finish();
+
+            }
+
+        });
     }
 
     /**
